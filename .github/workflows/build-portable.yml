@@ -31,8 +31,18 @@ jobs:
 
       # 4️⃣ Uncomment 'import site' in python310._pth
       - name: Enable site imports
-        run: |
-          powershell -Command "(gc python_embedded\python310._pth) -replace '# import site','import site' | Out-File python_embedded\python310._pth -Encoding ASCII"
+  run: |
+    $pthFile = "python_embedded\python310._pth"
+    $lines = Get-Content $pthFile
+    $newLines = $lines | ForEach-Object {
+        if ($_ -match '^\s*#\s*import site') {
+            'import site'
+        } else {
+            $_
+        }
+    }
+    $newLines | Set-Content $pthFile -Encoding ASCII
+
 
       # 5️⃣ Install pip via get-pip.py
       - name: Install pip
