@@ -27,19 +27,16 @@ jobs:
       - name: Download Python Embedded
         run: |
           curl -L -o python_embed.zip https://www.python.org/ftp/python/3.10.9/python-3.10.9-embed-amd64.zip
-          powershell -Command "Expand-Archive python_embed.zip -DestinationPath python_embedded"
+          powershell -Command "Expand-Archive -Path python_embed.zip -DestinationPath python_embedded"
 
       # 4️⃣ Robustly uncomment 'import site' in python310._pth
       - name: Enable site imports
+        shell: pwsh
         run: |
           $pthFile = "python_embedded\python310._pth"
           $lines = Get-Content $pthFile
           $newLines = $lines | ForEach-Object {
-              if ($_ -match '^\s*#\s*import site') {
-                  'import site'
-              } else {
-                  $_
-              }
+            if ($_ -match '^\s*#\s*import site') { 'import site' } else { $_ }
           }
           $newLines | Set-Content $pthFile -Encoding ASCII
 
@@ -55,7 +52,10 @@ jobs:
 
       # 7️⃣ Install Torch Packages (CUDA 12.8)
       - name: Install Torch Packages
-        run: python_embedded\python.exe -m pip install torch==2.8.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/test/cu128 --target=python_embedded/Lib/site-packages
+        run: |
+          python_embedded\python.exe -m pip install torch==2.8.0 torchvision torchaudio `
+            --index-url https://download.pytorch.org/whl/test/cu128 `
+            --target=python_embedded/Lib/site-packages
 
       # 8️⃣ Install Triton
       - name: Install Triton
@@ -63,9 +63,11 @@ jobs:
 
       # 9️⃣ Install SageAttention wheel
       - name: Install SageAttention
-        run: python_embedded\python.exe -m pip install https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl --target=python_embedded/Lib/site-packages
+        run: python_embedded\python.exe -m pip install ^
+          https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl ^
+          --target=python_embedded/Lib/site-packages
 
-      # 🔟 Install FilterPy from wheel (guaranteed to work in embedded Python)
+      # 🔟 Install FilterPy from wheel (avoid source build errors)
       - name: Install FilterPy from wheel
         run: python_embedded\python.exe -m pip install --only-binary=:all: filterpy --target=python_embedded/Lib/site-packages
 
@@ -83,8 +85,11 @@ jobs:
 
       # 1️⃣3️⃣ Package portable version with ultra compression and split archives
       - name: Package Portable Version
+        shell: pwsh
         run: |
-          powershell -Command "7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=16g -v1000m WanGP-Portable.7z WanGP-Portable\* -xr!**\__pycache__\* -xr!**\.git\* -xr!**\.gitignore -xr!**\.DS_Store -xr!**\*.pyc"
+          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=16g -v1000m `
+            WanGP-Portable.7z WanGP-Portable\* `
+            -xr!__pycache__ -xr!.git -xr!.gitignore -xr!.DS_Store -xr!*.pyc
 
       # 1️⃣4️⃣ Create GitHub release
       - name: Create GitHub Release
@@ -93,13 +98,20 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: Portable Release ${{ github.ref_name }}
-          body: "Portable WanGP release with embedded Python 3.10.9, custom launcher, ultra 7-Zip compression, PyTorch 2.8.0 + CUDA 12.8, Triton, SageAttention, FilterPy pre-installed, and smaller archive size."
+          body: |
+            Portable WanGP release with embedded Python 3.10.9, custom launcher,
+            ultra 7-Zip compression, PyTorch 2.8.0 + CUDA 12.8, Triton, SageAttention,
+            FilterPy pre-installed, and smaller archive size.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # 1️⃣5️⃣ Upload all split 7-Zip volumes automatically
       - name: Upload Split 7-Zip Archives
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem WanGP-Portable.7z.* | ForEach-Object { $_.FullName } | Join-String "`n"
+          echo "FILES=$files" >> $env:GITHUB_ENV
+      - name: Upload Archives to Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            $(Get-ChildItem WanGP-Portable.7z.* | ForEach-Object { $_.FullName })
+          files: ${{ env.FILES }}
