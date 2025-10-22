@@ -51,7 +51,9 @@ jobs:
           --target=python_embedded/Lib/site-packages
 
       - name: Install Triton
-        run: python_embedded/python.exe -m pip install triton-windows --target=python_embedded/Lib/site-packages
+        run: >
+          python_embedded/python.exe -m pip install triton-windows
+          --target=python_embedded/Lib/site-packages
 
       - name: Install SageAttention
         run: >
@@ -60,10 +62,14 @@ jobs:
           --target=python_embedded/Lib/site-packages
 
       - name: Install FilterPy (binary only)
-        run: python_embedded/python.exe -m pip install --only-binary=:all: filterpy --target=python_embedded/Lib/site-packages
+        run: >
+          python_embedded/python.exe -m pip install --only-binary=:all: filterpy
+          --target=python_embedded/Lib/site-packages
 
       - name: Install Requirements
-        run: python_embedded/python.exe -m pip install -r Wan2GP/requirements.txt --target=python_embedded/Lib/site-packages
+        run: >
+          python_embedded/python.exe -m pip install -r Wan2GP/requirements.txt
+          --target=python_embedded/Lib/site-packages
 
       - name: Prepare Portable Folder
         shell: pwsh
@@ -76,9 +82,7 @@ jobs:
       - name: Package Portable Version (split 7z)
         shell: pwsh
         run: |
-          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=16g -v1000m `
-            WanGP-Portable.7z WanGP-Portable\* `
-            -xr!__pycache__ -xr!.git -xr!.gitignore -xr!*.pyc
+          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v1000m "WanGP-Portable.7z" "WanGP-Portable\*" -xr!__pycache__ -xr!.git -xr!.gitignore -xr!*.pyc
 
       - name: Upload Split Archives to Release
         uses: softprops/action-gh-release@v1
