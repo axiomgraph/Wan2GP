@@ -79,11 +79,10 @@ jobs:
           Copy-Item -Recurse -Force Wan2GP WanGP-Portable\Wan2GP
           Copy-Item -Recurse -Force python_embedded WanGP-Portable\python_embedded
 
-      - name: Package Portable Version (split 7z)
-        shell: pwsh
+      - name: Package WanGP Portable
         run: |
-          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v1000m "WanGP-Portable.7z" "WanGP-Portable\*" `
-          -xr!__pycache__ -xr!.git -xr!.gitignore -xr!*.pyc
+          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v1000m "WanGP-Portable.7z" "WanGP-Portable\*" -xr!"__pycache__" -xr!".git" -xr!".gitignore" -xr!"*.pyc"
+
 
       - name: Upload Split Archives to Release
         uses: softprops/action-gh-release@v1
