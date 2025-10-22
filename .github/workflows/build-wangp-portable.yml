@@ -3,7 +3,7 @@ name: Build WanGP Portable
 on:
   push:
     branches:
-      - portable-release  # branch for portable builds
+      - portable-release
   workflow_dispatch:
 
 jobs:
@@ -14,35 +14,35 @@ jobs:
       TORCH_INDEX: https://download.pytorch.org/whl/test/cu128
 
     steps:
-      # 1️⃣ Checkout the repo
+      # 1️⃣ Checkout repo
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2️⃣ Download and set up Python Embedded
+      # 2️⃣ Download Python Embedded
       - name: Download Python Embedded
         run: |
           curl -L -o python-embed.zip https://www.python.org/ftp/python/${{ env.PYTHON_VERSION }}/python-${{ env.PYTHON_VERSION }}-embed-amd64.zip
           mkdir python_embedded
           tar -xf python-embed.zip -C python_embedded
           
-          # Uncomment 'import site' in _pth file
+          # Uncomment import site and add site-packages path
           (Get-Content python_embedded\python310._pth) -replace '# import site','import site' | Set-Content python_embedded\python310._pth
+          Add-Content python_embedded\python310._pth "Lib\site-packages"
           
-          # Create necessary folders for pip
+          # Create folders for packages
           mkdir python_embedded\Lib\site-packages
-          mkdir python_embedded\Scripts
 
-      # 3️⃣ Install pip in embedded Python
+      # 3️⃣ Install pip directly into Lib\site-packages
       - name: Install pip
         run: |
           curl -L -o get-pip.py https://bootstrap.pypa.io/get-pip.py
-          python_embedded\python.exe get-pip.py --prefix=python_embedded
+          python_embedded\python.exe get-pip.py --no-warn-script-location --target=python_embedded/Lib/site-packages
           python_embedded\python.exe -m pip --version
 
       # 4️⃣ Install core dependencies (Torch, SageAttention)
       - name: Install Torch and SageAttention
         run: |
-          python_embedded\python.exe -m pip install --upgrade pip
+          python_embedded\python.exe -m pip install --upgrade pip --target=python_embedded/Lib/site-packages
           python_embedded\python.exe -m pip install --target=python_embedded/Lib/site-packages torch==2.8.0 torchvision torchaudio --index-url ${{ env.TORCH_INDEX }}
           python_embedded\python.exe -m pip install --target=python_embedded/Lib/site-packages triton-windows
           python_embedded\python.exe -m pip install --target=python_embedded/Lib/site-packages https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl
@@ -57,7 +57,7 @@ jobs:
         run: |
           python_embedded\python.exe -m pip install --target=python_embedded/Lib/site-packages -r Wan2GP/requirements.txt
 
-      # 7️⃣ Add Launcher and organize portable folder
+      # 7️⃣ Add Launcher and portable files
       - name: Add Launcher
         run: |
           mkdir WanGP-Portable
