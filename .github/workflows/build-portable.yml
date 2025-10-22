@@ -40,9 +40,9 @@ jobs:
           curl -L -o get-pip.py https://bootstrap.pypa.io/get-pip.py
           python_embedded\python.exe get-pip.py
 
-      # 6️⃣ Upgrade pip
+      # 6️⃣ Show If Pip ready
       - name: Upgrade pip
-        run: python_embedded\python.exe -m pip install --upgrade pip
+        run: python_embedded\python.exe -m pip --version
 
       # 7️⃣ Install PyTorch, torchvision, torchaudio for CUDA 12.8
       - name: Install Torch Packages
