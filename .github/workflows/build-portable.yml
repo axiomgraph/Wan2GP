@@ -61,10 +61,10 @@ jobs:
           https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl
           --target=python_embedded/Lib/site-packages
 
-      - name: Install FilterPy (binary only)
-        run: >
-          python_embedded/python.exe -m pip install --only-binary=:all: filterpy
-          --target=python_embedded/Lib/site-packages
+      - name: Install FilterPy (from piwheels)
+        run: |
+          python_embedded\python.exe -m pip install https://www.piwheels.org/simple/filterpy/filterpy-1.4.5-py3-none-any.whl --target=python_embedded/Lib/site-packages
+
 
       - name: Install Requirements
         run: >
