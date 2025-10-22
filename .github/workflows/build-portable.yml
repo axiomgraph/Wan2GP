@@ -1,117 +1,105 @@
-name: Build Portable WanGP
+steps:
+  # 1️⃣ Checkout your fork (portable-release branch)
+  - name: Checkout portable repository
+    uses: actions/checkout@v3
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - portable-release
+  # 2️⃣ Clone upstream Wan2GP repo
+  - name: Clone Wan2GP upstream
+    uses: actions/checkout@v3
+    with:
+      repository: deepbeepmeep/Wan2GP
+      path: Wan2GP
+      ref: main
 
-jobs:
-  build:
-    runs-on: windows-latest
+  # 3️⃣ Download Python 3.10.9 embedded
+  - name: Download Python Embedded
+    run: |
+      curl -L -o python_embed.zip https://www.python.org/ftp/python/3.10.9/python-3.10.9-embed-amd64.zip
+      powershell -Command "Expand-Archive -Path python_embed.zip -DestinationPath python_embedded"
 
-    steps:
-      # 1️⃣ Checkout your fork (portable-release branch)
-      - name: Checkout repository
-        uses: actions/checkout@v3
+  # 4️⃣ Robustly uncomment 'import site' in python310._pth
+  - name: Enable site imports
+    shell: pwsh
+    run: |
+      $pthFile = "python_embedded\python310._pth"
+      $lines = Get-Content $pthFile
+      $newLines = $lines | ForEach-Object {
+        if ($_ -match '^\s*#\s*import site') { 'import site' } else { $_ }
+      }
+      $newLines | Set-Content $pthFile -Encoding ASCII
 
-      # 2️⃣ Clone upstream Wan2GP repo
-      - name: Clone Wan2GP upstream
-        uses: actions/checkout@v3
-        with:
-          repository: deepbeepmeep/Wan2GP
-          path: Wan2GP
-          ref: main
+  # 5️⃣ Install pip via get-pip.py
+  - name: Install pip
+    run: |
+      curl -L -o get-pip.py https://bootstrap.pypa.io/get-pip.py
+      python_embedded\python.exe get-pip.py --no-warn-script-location
 
-      # 3️⃣ Download Python 3.10.9 embedded
-      - name: Download Python Embedded
-        run: |
-          curl -L -o python_embed.zip https://www.python.org/ftp/python/3.10.9/python-3.10.9-embed-amd64.zip
-          powershell -Command "Expand-Archive -Path python_embed.zip -DestinationPath python_embedded"
+  # 6️⃣ Verify pip
+  - name: Check pip version
+    run: python_embedded\python.exe -m pip --version
 
-      # 4️⃣ Robustly uncomment 'import site' in python310._pth
-      - name: Enable site imports
-        shell: pwsh
-        run: |
-          $pthFile = "python_embedded\python310._pth"
-          $lines = Get-Content $pthFile
-          $newLines = $lines | ForEach-Object {
-            if ($_ -match '^\s*#\s*import site') { 'import site' } else { $_ }
-          }
-          $newLines | Set-Content $pthFile -Encoding ASCII
+  # 7️⃣ Install Torch Packages (CUDA 12.8)
+  - name: Install Torch Packages
+    run: |
+      python_embedded\python.exe -m pip install torch==2.8.0 torchvision torchaudio `
+        --index-url https://download.pytorch.org/whl/test/cu128 `
+        --target=python_embedded/Lib/site-packages
 
-      # 5️⃣ Install pip via get-pip.py
-      - name: Install pip
-        run: |
-          curl -L -o get-pip.py https://bootstrap.pypa.io/get-pip.py
-          python_embedded\python.exe get-pip.py --no-warn-script-location
+  # 8️⃣ Install Triton
+  - name: Install Triton
+    run: python_embedded\python.exe -m pip install triton-windows --target=python_embedded/Lib/site-packages
 
-      # 6️⃣ Verify pip
-      - name: Check pip version
-        run: python_embedded\python.exe -m pip --version
+  # 9️⃣ Install SageAttention wheel
+  - name: Install SageAttention
+    run: python_embedded\python.exe -m pip install ^
+      https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl ^
+      --target=python_embedded/Lib/site-packages
 
-      # 7️⃣ Install Torch Packages (CUDA 12.8)
-      - name: Install Torch Packages
-        run: |
-          python_embedded\python.exe -m pip install torch==2.8.0 torchvision torchaudio `
-            --index-url https://download.pytorch.org/whl/test/cu128 `
-            --target=python_embedded/Lib/site-packages
+  # 🔟 Install FilterPy from wheel (avoid source build errors)
+  - name: Install FilterPy from wheel
+    run: python_embedded\python.exe -m pip install --only-binary=:all: filterpy --target=python_embedded/Lib/site-packages
 
-      # 8️⃣ Install Triton
-      - name: Install Triton
-        run: python_embedded\python.exe -m pip install triton-windows --target=python_embedded/Lib/site-packages
+  # 1️⃣1️⃣ Install remaining requirements
+  - name: Install Remaining Requirements
+    run: python_embedded\python.exe -m pip install -r Wan2GP/requirements.txt --target=python_embedded/Lib/site-packages
 
-      # 9️⃣ Install SageAttention wheel
-      - name: Install SageAttention
-        run: python_embedded\python.exe -m pip install ^
-          https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl ^
-          --target=python_embedded/Lib/site-packages
+  # 1️⃣2️⃣ Prepare portable folder structure
+  - name: Prepare Portable Folder
+    run: |
+      mkdir WanGP-Portable
+      copy Launch_WanGP.bat WanGP-Portable\
+      xcopy /E /I Wan2GP WanGP-Portable\Wan2GP
+      xcopy /E /I python_embedded WanGP-Portable\python_embedded
 
-      # 🔟 Install FilterPy from wheel (avoid source build errors)
-      - name: Install FilterPy from wheel
-        run: python_embedded\python.exe -m pip install --only-binary=:all: filterpy --target=python_embedded/Lib/site-packages
+  # 1️⃣3️⃣ Package portable version with ultra compression and split archives
+  - name: Package Portable Version
+    shell: pwsh
+    run: |
+      7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=16g -v1000m `
+        WanGP-Portable.7z WanGP-Portable\* `
+        -xr!__pycache__ -xr!.git -xr!.gitignore -xr!.DS_Store -xr!*.pyc
 
-      # 1️⃣1️⃣ Install remaining requirements
-      - name: Install Remaining Requirements
-        run: python_embedded\python.exe -m pip install -r Wan2GP/requirements.txt --target=python_embedded/Lib/site-packages
+  # 1️⃣4️⃣ Create GitHub release
+  - name: Create GitHub Release
+    id: create_release
+    uses: softprops/action-gh-release@v1
+    with:
+      tag_name: ${{ github.ref_name }}
+      name: Portable Release ${{ github.ref_name }}
+      body: |
+        Portable WanGP release with embedded Python 3.10.9, custom launcher,
+        ultra 7-Zip compression, PyTorch 2.8.0 + CUDA 12.8, Triton, SageAttention,
+        FilterPy pre-installed, and smaller archive size.
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 1️⃣2️⃣ Prepare portable folder structure
-      - name: Prepare Portable Folder
-        run: |
-          mkdir WanGP-Portable
-          copy Launch_WanGP.bat WanGP-Portable\
-          xcopy /E /I Wan2GP WanGP-Portable\Wan2GP
-          xcopy /E /I python_embedded WanGP-Portable\python_embedded
-
-      # 1️⃣3️⃣ Package portable version with ultra compression and split archives
-      - name: Package Portable Version
-        shell: pwsh
-        run: |
-          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=16g -v1000m `
-            WanGP-Portable.7z WanGP-Portable\* `
-            -xr!__pycache__ -xr!.git -xr!.gitignore -xr!.DS_Store -xr!*.pyc
-
-      # 1️⃣4️⃣ Create GitHub release
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Portable Release ${{ github.ref_name }}
-          body: |
-            Portable WanGP release with embedded Python 3.10.9, custom launcher,
-            ultra 7-Zip compression, PyTorch 2.8.0 + CUDA 12.8, Triton, SageAttention,
-            FilterPy pre-installed, and smaller archive size.
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # 1️⃣5️⃣ Upload all split 7-Zip volumes automatically
-      - name: Upload Split 7-Zip Archives
-        shell: pwsh
-        run: |
-          $files = Get-ChildItem WanGP-Portable.7z.* | ForEach-Object { $_.FullName } | Join-String "`n"
-          echo "FILES=$files" >> $env:GITHUB_ENV
-      - name: Upload Archives to Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ${{ env.FILES }}
+  # 1️⃣5️⃣ Upload all split 7-Zip volumes automatically
+  - name: Upload Split 7-Zip Archives Setup
+    shell: pwsh
+    run: |
+      $files = Get-ChildItem WanGP-Portable.7z.* | ForEach-Object { $_.FullName } | Join-String "`n"
+      echo "FILES=$files" >> $env:GITHUB_ENV
+  - name: Upload Archives to Release
+    uses: softprops/action-gh-release@v1
+    with:
+      files: ${{ env.FILES }}
