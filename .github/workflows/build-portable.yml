@@ -29,29 +29,28 @@ jobs:
           curl -L -o python_embed.zip https://www.python.org/ftp/python/3.10.9/python-3.10.9-embed-amd64.zip
           powershell -Command "Expand-Archive python_embed.zip -DestinationPath python_embedded"
 
-      # 4️⃣ Uncomment 'import site' in python310._pth
+      # 4️⃣ Robustly uncomment 'import site' in python310._pth
       - name: Enable site imports
-  run: |
-    $pthFile = "python_embedded\python310._pth"
-    $lines = Get-Content $pthFile
-    $newLines = $lines | ForEach-Object {
-        if ($_ -match '^\s*#\s*import site') {
-            'import site'
-        } else {
-            $_
-        }
-    }
-    $newLines | Set-Content $pthFile -Encoding ASCII
-
+        run: |
+          $pthFile = "python_embedded\python310._pth"
+          $lines = Get-Content $pthFile
+          $newLines = $lines | ForEach-Object {
+              if ($_ -match '^\s*#\s*import site') {
+                  'import site'
+              } else {
+                  $_
+              }
+          }
+          $newLines | Set-Content $pthFile -Encoding ASCII
 
       # 5️⃣ Install pip via get-pip.py
       - name: Install pip
         run: |
           curl -L -o get-pip.py https://bootstrap.pypa.io/get-pip.py
-          python_embedded\python.exe get-pip.py
+          python_embedded\python.exe get-pip.py --no-warn-script-location
 
-      # 6️⃣ Show If Pip ready
-      - name: Upgrade pip
+      # 6️⃣ Verify pip
+      - name: Check pip version
         run: python_embedded\python.exe -m pip --version
 
       # 7️⃣ Install PyTorch, torchvision, torchaudio for CUDA 12.8
@@ -78,7 +77,7 @@ jobs:
           xcopy /E /I Wan2GP WanGP-Portable\Wan2GP
           xcopy /E /I python_embedded WanGP-Portable\python_embedded
 
-      # 1️⃣2️⃣ Package portable version with ultra compression and split archives, excluding unnecessary files
+      # 1️⃣2️⃣ Package portable version with ultra compression, split archives, and exclusions
       - name: Package Portable Version
         run: |
           powershell -Command "7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=16g -v1000m WanGP-Portable.7z WanGP-Portable\* -xr!**\__pycache__\* -xr!**\.git\* -xr!**\.gitignore -xr!**\.DS_Store -xr!**\*.pyc"
