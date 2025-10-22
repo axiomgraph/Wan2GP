@@ -1,12 +1,10 @@
 name: Build WanGP Portable
 
 on:
+  push:
+    branches:
+      - main  # or your upstream tracking branch
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to build'
-        required: true
-        default: 'main'
 
 jobs:
   build-portable:
@@ -16,11 +14,9 @@ jobs:
       TORCH_INDEX: https://download.pytorch.org/whl/test/cu128
 
     steps:
-      # 1️⃣ Checkout code from the selected branch
+      # 1️⃣ Checkout the repo
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
 
       # 2️⃣ Set up Python embedded folder
       - name: Download Python Embedded
@@ -28,6 +24,7 @@ jobs:
           curl -L -o python-embed.zip https://www.python.org/ftp/python/${{ env.PYTHON_VERSION }}/python-${{ env.PYTHON_VERSION }}-embed-amd64.zip
           mkdir python_embedded
           tar -xf python-embed.zip -C python_embedded
+          # Uncomment 'import site' in python310._pth
           (Get-Content python_embedded\python310._pth) -replace '# import site','import site' | Set-Content python_embedded\python310._pth
 
       # 3️⃣ Install pip in embedded Python
