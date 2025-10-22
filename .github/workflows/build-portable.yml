@@ -66,6 +66,11 @@ jobs:
         run: python_embedded\python.exe -m pip install https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl --target=python_embedded/Lib/site-packages
 
       # 🔟 Install remaining requirements
+     # Pre-install FilterPy to avoid setup.py import error
+      - name: Install FilterPy
+        run: python_embedded\python.exe -m pip install filterpy --target=python_embedded/Lib/site-packages
+
+      # Install the rest of the requirements
       - name: Install Remaining Requirements
         run: python_embedded\python.exe -m pip install -r Wan2GP/requirements.txt --target=python_embedded/Lib/site-packages
 
