@@ -1,92 +1,89 @@
-name: Build Portable WanGP
+name: Build WanGP Portable
 
 on:
-  workflow_dispatch:
   push:
     branches:
-      - portable-release
+      - main  # or your upstream tracking branch
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-portable:
     runs-on: windows-latest
+    env:
+      PYTHON_VERSION: 3.10.9
+      TORCH_INDEX: https://download.pytorch.org/whl/test/cu128
 
     steps:
-      - name: Checkout portable branch
+      # 1️⃣ Checkout the repo
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Clone upstream Wan2GP
-        uses: actions/checkout@v4
-        with:
-          repository: deepbeepmeep/Wan2GP
-          path: Wan2GP
-          ref: main
-
-      - name: Download Python Embedded 3.10.9
-        shell: pwsh
+      # 2️⃣ Set up Python embedded folder
+      - name: Download Python Embedded
         run: |
-          curl -L -o python_embed.zip https://www.python.org/ftp/python/3.10.9/python-3.10.9-embed-amd64.zip
-          Expand-Archive -Path python_embed.zip -DestinationPath python_embedded
+          curl -L -o python-embed.zip https://www.python.org/ftp/python/${{ env.PYTHON_VERSION }}/python-${{ env.PYTHON_VERSION }}-embed-amd64.zip
+          mkdir python_embedded
+          tar -xf python-embed.zip -C python_embedded
+          # Uncomment 'import site' in python310._pth
+          (Get-Content python_embedded\python310._pth) -replace '# import site','import site' | Set-Content python_embedded\python310._pth
 
-      - name: Enable site imports in _pth
-        shell: pwsh
-        run: |
-          $pth = "python_embedded/python310._pth"
-          (Get-Content $pth) | ForEach-Object {
-            if ($_ -match '^\s*#\s*import site') { 'import site' } else { $_ }
-          } | Set-Content $pth -Encoding ascii
-
+      # 3️⃣ Install pip in embedded Python
       - name: Install pip
-        shell: pwsh
         run: |
           curl -L -o get-pip.py https://bootstrap.pypa.io/get-pip.py
-          python_embedded/python.exe get-pip.py --no-warn-script-location
+          python_embedded\python.exe get-pip.py
 
-      - name: Verify pip
-        run: python_embedded/python.exe -m pip --version
+      # 4️⃣ Install Torch and SageAttention
+      - name: Install Torch and SageAttention
+        run: |
+          python_embedded\python.exe -m pip install --upgrade pip
+          python_embedded\python.exe -m pip install torch==2.8.0 torchvision torchaudio --index-url ${{ env.TORCH_INDEX }}
+          python_embedded\python.exe -m pip install triton-windows
+          python_embedded\python.exe -m pip install https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl
 
-      - name: Install Torch 2.8.0 (CUDA 12.8)
-        run: >
-          python_embedded/python.exe -m pip install torch==2.8.0 torchvision torchaudio
-          --index-url https://download.pytorch.org/whl/test/cu128
-          --target=python_embedded/Lib/site-packages
-
-      - name: Install Triton
-        run: >
-          python_embedded/python.exe -m pip install triton-windows
-          --target=python_embedded/Lib/site-packages
-
-      - name: Install SageAttention
-        run: >
-          python_embedded/python.exe -m pip install
-          https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl
-          --target=python_embedded/Lib/site-packages
-
-      - name: Install FilterPy (from piwheels)
+      # 5️⃣ Install FilterPy (piwheels)
+      - name: Install FilterPy
         run: |
           python_embedded\python.exe -m pip install https://www.piwheels.org/simple/filterpy/filterpy-1.4.5-py3-none-any.whl --target=python_embedded/Lib/site-packages
 
+      # 6️⃣ Install remaining requirements
+      - name: Install requirements
+        run: |
+          python_embedded\python.exe -m pip install -r Wan2GP/requirements.txt --target=python_embedded/Lib/site-packages
 
-      - name: Install Requirements
-        run: >
-          python_embedded/python.exe -m pip install -r Wan2GP/requirements.txt
-          --target=python_embedded/Lib/site-packages
-
-      - name: Prepare Portable Folder
-        shell: pwsh
+      # 7️⃣ Add your custom Launch_WanGP.bat
+      - name: Add Launcher
         run: |
           mkdir WanGP-Portable
-          Copy-Item Launch_WanGP.bat WanGP-Portable\
-          Copy-Item -Recurse -Force Wan2GP WanGP-Portable\Wan2GP
-          Copy-Item -Recurse -Force python_embedded WanGP-Portable\python_embedded
+          copy Launch_WanGP.bat WanGP-Portable\
+          xcopy /E /I python_embedded WanGP-Portable\python_embedded
+          xcopy /E /I Wan2GP WanGP-Portable\Wan2GP
 
-      - name: Package WanGP Portable
+      # 8️⃣ Package into 7-Zip (split, safe exclusions)
+      - name: Package 7-Zip
         run: |
-          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v1000m "WanGP-Portable.7z" "WanGP-Portable\*" -xr!"__pycache__" -xr!".git" -xr!".gitignore" -xr!"*.pyc"
+          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v2000m "WanGP-Portable.7z" "WanGP-Portable\*" -xr!"__pycache__" -xr!".git" -xr!".gitignore" -xr!"*.pyc"
 
+      # 9️⃣ Create auto-increment tag
+      - name: Create tag
+        id: tag
+        run: |
+          git fetch --tags
+          latest=$(git describe --tags --abbrev=0 2>nul || echo "v0.0.0")
+          IFS='.' read -r major minor patch <<< "${latest#v}"
+          patch=$((patch+1))
+          new_tag="v$major.$minor.$patch"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag $new_tag
+          git push origin $new_tag
+          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
 
-      - name: Upload Split Archives to Release
+      # 🔟 Create GitHub release
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ steps.tag.outputs.new_tag }}
           files: WanGP-Portable.7z.*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
