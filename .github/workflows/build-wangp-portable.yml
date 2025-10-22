@@ -15,6 +15,10 @@ jobs:
 
     steps:
       # 1️⃣ Checkout repo
+      - uses: actions/checkout@v4
+        with:
+          ref: portable-release
+          
       - name: Clone another repo
         run: git clone https://github.com/deepbeepmeep/Wan2GP.git
 
