@@ -53,7 +53,7 @@ jobs:
       - name: Check pip version
         run: python_embedded\python.exe -m pip --version
 
-      # 7️⃣ Install PyTorch, torchvision, torchaudio for CUDA 12.8
+      # 7️⃣ Install Torch Packages (CUDA 12.8)
       - name: Install Torch Packages
         run: python_embedded\python.exe -m pip install torch==2.8.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/test/cu128 --target=python_embedded/Lib/site-packages
 
@@ -65,9 +65,13 @@ jobs:
       - name: Install SageAttention
         run: python_embedded\python.exe -m pip install https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl --target=python_embedded/Lib/site-packages
 
+      # 🔟 Install FilterPy from wheel (guaranteed to work in embedded Python)
+      - name: Install FilterPy from wheel
+        run: python_embedded\python.exe -m pip install --only-binary=:all: filterpy --target=python_embedded/Lib/site-packages
+
       # 1️⃣1️⃣ Install remaining requirements
       - name: Install Remaining Requirements
-        run: python_embedded\python.exe -m pip install -r Wan2GP/requirements.txt 
+        run: python_embedded\python.exe -m pip install -r Wan2GP/requirements.txt --target=python_embedded/Lib/site-packages
 
       # 1️⃣2️⃣ Prepare portable folder structure
       - name: Prepare Portable Folder
