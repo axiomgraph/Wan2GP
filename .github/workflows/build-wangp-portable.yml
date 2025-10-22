@@ -2,6 +2,11 @@ name: Build WanGP Portable
 
 on:
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build'
+        required: true
+        default: 'main'
 
 jobs:
   build-portable:
@@ -11,11 +16,10 @@ jobs:
       TORCH_INDEX: https://download.pytorch.org/whl/test/cu128
 
     steps:
-      # 1️⃣ Checkout code from a branch specified when running the workflow
+      # 1️⃣ Checkout code from the selected branch
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # This allows you to select any branch when triggering manually
           ref: ${{ github.event.inputs.branch }}
 
       # 2️⃣ Set up Python embedded folder
@@ -86,10 +90,3 @@ jobs:
           files: WanGP-Portable.7z.*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-# Inputs for manual branch selection
-inputs:
-  branch:
-    description: 'Branch to build'
-    required: true
-    default: 'main'
