@@ -74,20 +74,23 @@ jobs:
         run: |
           7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v2000m "WanGP-Portable.7z" "WanGP-Portable\*" -xr!"__pycache__" -xr!".git" -xr!".gitignore" -xr!"*.pyc"
 
-      # 9️⃣ Auto-increment tag
+       # 9️⃣ Daily tag based on current date
       - name: Create tag
         id: tag
+        shell: pwsh
         run: |
-          git fetch --tags
-          latest=$(git describe --tags --abbrev=0 2>nul || echo "v0.0.0")
-          IFS='.' read -r major minor patch <<< "${latest#v}"
-          patch=$((patch+1))
-          new_tag="v$major.$minor.$patch"
+          $date = (Get-Date).ToString("yyyy-MM-dd")
+          $new_tag = "v$date"
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git tag $new_tag
-          git push origin $new_tag
-          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+          git fetch --tags
+          if (git tag -l $new_tag) {
+            Write-Host "Tag $new_tag already exists, skipping creation."
+          } else {
+            git tag $new_tag
+            git push origin $new_tag
+          }
+          echo "new_tag=$new_tag" >> $env:GITHUB_OUTPUT
 
       # 🔟 Create GitHub release
       - name: Create Release
