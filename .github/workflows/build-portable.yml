@@ -65,9 +65,9 @@ jobs:
       - name: Install SageAttention
         run: python_embedded\python.exe -m pip install https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl --target=python_embedded/Lib/site-packages
 
-      # 🔟 Pre-install FilterPy to avoid facexlib errors
+     # Pre-install FilterPy from wheel to avoid source build issues
       - name: Install FilterPy
-        run: python_embedded\python.exe -m pip install filterpy --target=python_embedded/Lib/site-packages
+        run: python_embedded\python.exe -m pip install --only-binary=:all: filterpy --target=python_embedded/Lib/site-packages
 
       # 1️⃣1️⃣ Install remaining requirements
       - name: Install Remaining Requirements
