@@ -72,7 +72,7 @@ jobs:
       # 8️⃣ Package into 7-Zip (split archive)
       - name: Package 7-Zip
         run: |
-          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v2000m "WanGP-Portable.7z" "WanGP-Portable\*" -xr!"__pycache__" -xr!".git" -xr!".gitignore" -xr!"*.pyc"
+          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v2000m "WanGP-Portable.7z" "WanGP-Portable\*" -xr!"__pycache__" -xr!".gitignore" -xr!"*.pyc"
 
        # 9️⃣ Daily tag based on current date
       - name: Create tag
