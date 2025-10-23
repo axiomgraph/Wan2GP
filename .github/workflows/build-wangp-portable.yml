@@ -66,8 +66,7 @@ jobs:
         run: |
           mkdir WanGP-Portable
           copy Launch_WanGP.bat WanGP-Portable\
-          xcopy /E /I python_embedded WanGP-Portable\python_embedded
-          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v2000m "WanGP-Portable.7z" "WanGP-Portable\*" Wan2GP\* -xr!"__pycache__" -xr!"*.pyc" -xr!".gitignore"
+          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v2000m "WanGP-Portable.7z" "WanGP-Portable\*" "python_embedded\*" "Wan2GP\*" -xr!"__pycache__" -xr!"*.pyc" -xr!".gitignore"
 
         # 9️⃣ Daily tag based on current date
       - name: Create tag
