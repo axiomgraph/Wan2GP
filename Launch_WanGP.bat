@@ -4,7 +4,7 @@ title WanGP Portable Launcher
 :: ==============================
 :: 💡 User-configurable paths
 :: ==============================
-set "PYTHON_PATH=%~dp0python_embeded\python.exe"
+set "PYTHON_PATH=%~dp0python_embedded\python.exe"
 set "WANGP_PATH=%~dp0wan2gp"
 
 :: =====================================================
@@ -42,7 +42,7 @@ cd /d "%WANGP_PATH%"
 
 echo.
 echo Pulling latest changes from GitHub...
-git pull
+git pull 
 
 echo.
 echo Installing/Updating Python requirements...
@@ -79,3 +79,4 @@ if "%usercmd%"=="" (
 )
 pause
 goto menu
+
