@@ -31,35 +31,35 @@ jobs:
           
           # Uncomment import site and add site-packages path
           (Get-Content python_embedded\python310._pth) -replace '# import site','import site' | Set-Content python_embedded\python310._pth
-          Add-Content python_embedded\python310._pth "Lib\site-packages"
+          # Add-Content python_embedded\python310._pth "Lib\site-packages"
           
           # Create folders for packages
-          mkdir python_embedded\Lib\site-packages
+          # mkdir python_embedded\Lib\site-packages
 
       # 3️⃣ Install pip directly into Lib\site-packages
       - name: Install pip
         run: |
           curl -L -o get-pip.py https://bootstrap.pypa.io/get-pip.py
-          python_embedded\python.exe get-pip.py --no-warn-script-location --target=python_embedded/Lib/site-packages
+          python_embedded\python.exe get-pip.py
           python_embedded\python.exe -m pip --version
 
       # 4️⃣ Install core dependencies (Torch, SageAttention)
       - name: Install Torch and SageAttention
         run: |
-          python_embedded\python.exe -m pip install --upgrade pip --target=python_embedded/Lib/site-packages
-          python_embedded\python.exe -m pip install --upgrade --target=python_embedded/Lib/site-packages torch==2.8.0 torchvision torchaudio --index-url ${{ env.TORCH_INDEX }}
-          python_embedded\python.exe -m pip install --upgrade --target=python_embedded/Lib/site-packages triton-windows
-          python_embedded\python.exe -m pip install --upgrade --target=python_embedded/Lib/site-packages https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl
+          python_embedded\python.exe -m pip install --upgrade pip 
+          python_embedded\python.exe -m pip install  torch==2.8.0 torchvision torchaudio --index-url ${{ env.TORCH_INDEX }}
+          python_embedded\python.exe -m pip install  triton-windows
+          python_embedded\python.exe -m pip install  https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl
 
       # 5️⃣ Install FilterPy
       - name: Install FilterPy
         run: |
-          python_embedded\python.exe -m pip install --target=python_embedded/Lib/site-packages https://www.piwheels.org/simple/filterpy/filterpy-1.4.5-py3-none-any.whl
+          python_embedded\python.exe -m pip install https://www.piwheels.org/simple/filterpy/filterpy-1.4.5-py3-none-any.whl
 
       # 6️⃣ Install remaining requirements
       - name: Install requirements
         run: |
-          python_embedded\python.exe -m pip install --upgrade --target=python_embedded/Lib/site-packages -r Wan2GP/requirements.txt
+          python_embedded\python.exe -m pip install --upgrade -r Wan2GP/requirements.txt
 
       - name: Prepare portable folder and package
         shell: pwsh
