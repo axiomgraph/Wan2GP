@@ -63,7 +63,7 @@ jobs:
 
       - name: Package 7-Zip
         run: |
-        7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v2000m "WanGP-Portable.7z" "python_embedded" "Launch_WanGP.bat" "Wan2GP" -xr!"__pycache__" -xr!"*.pyc" -xr!".gitignore"
+          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v2000m "WanGP-Portable.7z" "python_embedded" "Launch_WanGP.bat" "Wan2GP" -xr!"__pycache__" -xr!"*.pyc" -xr!".gitignore"
 
         # 9️⃣ Daily tag based on current date
       - name: Create tag
