@@ -61,9 +61,15 @@ jobs:
         run: |
           python_embedded\python.exe -m pip install --upgrade --target=python_embedded/Lib/site-packages -r Wan2GP/requirements.txt
 
-      - name: Package 7-Zip
+      - name: Prepare portable folder and package
         run: |
-          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v2000m "WanGP-Portable.7z" "python_embedded" "Launch_WanGP.bat" "Wan2GP" -xr!"__pycache__" -xr!"*.pyc" -xr!".gitignore"
+          mkdir WanGP-Portable
+          copy Launch_WanGP.bat WanGP-Portable\
+          robocopy python_embedded WanGP-Portable\python_embedded /E /COPYALL
+          IF %ERRORLEVEL% GEQ 8 exit /b %ERRORLEVEL%  
+          robocopy Wan2GP WanGP-Portable\Wan2GP /E /COPYALL    
+          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v2000m "WanGP-Portable.7z" "WanGP-Portable\*" -xr!"__pycache__" -xr!"*.pyc" -xr!".gitignore"
+          IF %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
         # 9️⃣ Daily tag based on current date
       - name: Create tag
