@@ -67,7 +67,7 @@ jobs:
           mkdir WanGP-Portable
           copy Launch_WanGP.bat WanGP-Portable\
           xcopy /E /I python_embedded WanGP-Portable\python_embedded
-          xcopy /E /I Wan2GP WanGP-Portable\Wan2GP
+          robocopy Wan2GP WanGP-Portable\Wan2GP /E /COPYALL /XD __pycache__ *.pyc
 
       # 8️⃣ Package into 7-Zip (split archive)
       - name: Package 7-Zip
