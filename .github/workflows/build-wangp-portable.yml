@@ -47,9 +47,9 @@ jobs:
       - name: Install Torch and SageAttention
         run: |
           python_embedded\python.exe -m pip install --upgrade pip --target=python_embedded/Lib/site-packages
-          python_embedded\python.exe -m pip install --target=python_embedded/Lib/site-packages torch==2.8.0 torchvision torchaudio --index-url ${{ env.TORCH_INDEX }}
-          python_embedded\python.exe -m pip install --target=python_embedded/Lib/site-packages triton-windows
-          python_embedded\python.exe -m pip install --target=python_embedded/Lib/site-packages https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl
+          python_embedded\python.exe -m pip install --upgrade --target=python_embedded/Lib/site-packages torch==2.8.0 torchvision torchaudio --index-url ${{ env.TORCH_INDEX }}
+          python_embedded\python.exe -m pip install --upgrade --target=python_embedded/Lib/site-packages triton-windows
+          python_embedded\python.exe -m pip install --upgrade --target=python_embedded/Lib/site-packages https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl
 
       # 5️⃣ Install FilterPy
       - name: Install FilterPy
@@ -59,7 +59,7 @@ jobs:
       # 6️⃣ Install remaining requirements
       - name: Install requirements
         run: |
-          python_embedded\python.exe -m pip install --target=python_embedded/Lib/site-packages -r Wan2GP/requirements.txt
+          python_embedded\python.exe -m pip install --upgrade --target=python_embedded/Lib/site-packages -r Wan2GP/requirements.txt
 
       # 7️⃣ Add Launcher and portable files
       - name: Add Launcher
@@ -67,14 +67,9 @@ jobs:
           mkdir WanGP-Portable
           copy Launch_WanGP.bat WanGP-Portable\
           xcopy /E /I python_embedded WanGP-Portable\python_embedded
-          robocopy Wan2GP WanGP-Portable\Wan2GP /E /COPYALL /XD __pycache__ *.pyc
+          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v2000m "WanGP-Portable.7z" "WanGP-Portable\*" Wan2GP\* -xr!"__pycache__" -xr!"*.pyc" -xr!".gitignore"
 
-      # 8️⃣ Package into 7-Zip (split archive)
-      - name: Package 7-Zip
-        run: |
-          7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v2000m "WanGP-Portable.7z" "WanGP-Portable\*" -xr!"__pycache__" -xr!".gitignore" -xr!"*.pyc"
-
-       # 9️⃣ Daily tag based on current date
+        # 9️⃣ Daily tag based on current date
       - name: Create tag
         id: tag
         shell: pwsh
