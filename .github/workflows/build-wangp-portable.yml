@@ -22,14 +22,20 @@ jobs:
       - name: Clone another repo
         run: git clone https://github.com/deepbeepmeep/Wan2GP.git
 
-       #  Extract version from wgp.py
+         # 🔹 Extract version from wgp.py (Windows compatible)
       - name: Read version from wgp.py
         id: get_version
-        shell: bash
+        shell: pwsh
         run: |
-          VERSION=$(grep -oP '(?<=WanGP_version\s*=\s*")[^"]+' wgp.py)
-          echo "Found version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          $content = Get-Content wgp.py -Raw
+          if ($content -match 'WanGP_version\s*=\s*"([^"]+)"') {
+            $version = $matches[1]
+            Write-Host "Found version: $version"
+            echo "version=$version" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "⚠️ WanGP_version not found in wgp.py"
+            echo "version=unknown" >> $env:GITHUB_OUTPUT
+          }
 
       #  Download Python Embedded
       - name: Download Python Embedded
