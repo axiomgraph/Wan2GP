@@ -14,7 +14,7 @@ jobs:
       TORCH_INDEX: https://download.pytorch.org/whl/test/cu128
 
     steps:
-      # 1️⃣ Checkout repo
+      #  Checkout repo
       - uses: actions/checkout@v4
         with:
           ref: portable-release
@@ -22,7 +22,16 @@ jobs:
       - name: Clone another repo
         run: git clone https://github.com/deepbeepmeep/Wan2GP.git
 
-      # 2️⃣ Download Python Embedded
+       #  Extract version from wgp.py
+      - name: Read version from wgp.py
+        id: get_version
+        shell: bash
+        run: |
+          VERSION=$(grep -oP '(?<=WanGP_version\s*=\s*")[^"]+' wgp.py)
+          echo "Found version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      #  Download Python Embedded
       - name: Download Python Embedded
         run: |
           curl -L -o python-embed.zip https://www.python.org/ftp/python/${{ env.PYTHON_VERSION }}/python-${{ env.PYTHON_VERSION }}-embed-amd64.zip
@@ -36,14 +45,14 @@ jobs:
           # Create folders for packages
           mkdir python_embedded\Lib\site-packages
 
-      # 3️⃣ Install pip directly into Lib\site-packages
+      #  Install pip directly into Lib\site-packages
       - name: Install pip
         run: |
           curl -L -o get-pip.py https://bootstrap.pypa.io/get-pip.py
           python_embedded\python.exe get-pip.py
           python_embedded\python.exe -m pip --version
 
-      # 4️⃣ Install core dependencies (Torch, SageAttention)
+      #  Install core dependencies (Torch, SageAttention)
       - name: Install Torch and SageAttention
         run: |
           python_embedded\python.exe -m pip install --upgrade pip 
@@ -51,12 +60,12 @@ jobs:
           python_embedded\python.exe -m pip install  triton-windows
           python_embedded\python.exe -m pip install  https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post2/sageattention-2.2.0+cu128torch2.8.0.post2-cp39-abi3-win_amd64.whl
 
-      # 5️⃣ Install FilterPy
+      #  Install FilterPy
       - name: Install FilterPy
         run: |
           python_embedded\python.exe -m pip install https://www.piwheels.org/simple/filterpy/filterpy-1.4.5-py3-none-any.whl
 
-      # 6️⃣ Install remaining requirements
+      #  Install remaining requirements
       - name: Install requirements
         run: |
           python_embedded\python.exe -m pip install --upgrade -r Wan2GP/requirements.txt
@@ -73,13 +82,14 @@ jobs:
           7z a -t7z -m0=lzma2 -mx=9 -md=512m -mfb=273 -ms=on -v2000m "WanGP-Portable.7z" "WanGP-Portable\*" -xr!"__pycache__" -xr!"*.pyc" -xr!".gitignore"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     
-        # 9️⃣ Daily tag based on current date
+        # 🔹 Create version-based tag
       - name: Create tag
         id: tag
         shell: pwsh
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
         run: |
-          $date = (Get-Date).ToString("yyyy-MM-dd")
-          $new_tag = "v$date"
+          $new_tag = "v$env:VERSION"
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git fetch --tags
@@ -91,7 +101,8 @@ jobs:
           }
           echo "new_tag=$new_tag" >> $env:GITHUB_OUTPUT
 
-      # 🔟 Create GitHub release
+
+      # Create GitHub release
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
