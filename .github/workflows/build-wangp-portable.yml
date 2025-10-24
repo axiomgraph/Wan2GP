@@ -81,6 +81,7 @@ jobs:
         run: |
           mkdir WanGP-Portable
           Copy-Item Launch_WanGP.bat WanGP-Portable\
+          Copy-Item Update.bat WanGP-Portable\
           robocopy python_embedded WanGP-Portable\python_embedded /E /COPYALL
           if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
           robocopy Wan2GP WanGP-Portable\Wan2GP /E /COPYALL
