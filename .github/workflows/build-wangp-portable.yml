@@ -2,6 +2,9 @@ name: Build WanGP Portable
 
 on:
   workflow_dispatch:
+  push:
+  branches:
+    - portable-release
 
 jobs:
   build-portable:
