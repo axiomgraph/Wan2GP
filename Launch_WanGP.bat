@@ -1,3 +1,4 @@
 cd Wan2GP
-..\python_embeded\python.exe -s wgp.py --open-browser
+..\python_embedded\python.exe -s wgp.py --open-browser
 pause
+
